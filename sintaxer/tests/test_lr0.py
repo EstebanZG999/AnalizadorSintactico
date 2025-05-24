@@ -75,7 +75,7 @@ def test_items_count(arithmetic_grammar):
 
     # Asegura que hay al menos varios estados y la inicial sea la 0
     assert isinstance(states, list)
-    assert len(states) == 12
+    assert len(states) == 18
     assert states[0].id == 0
 
     # Comprueba una transición conocida: desde estado 0 sobre 'T'
