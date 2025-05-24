@@ -49,7 +49,9 @@ def goto(items: Set[Item], symbol: str, productions: Dict[str, List[List[str]]])
     # devuelve la cerradura de ese conjunto
     return closure(moved, productions)
 
-def items(productions: dict, start_symbol: str) -> (list[State], dict):
+def items(productions: Dict[str, List[List[str]]],
+          start_symbol: str
+         ) -> Tuple[List[State], Dict[Tuple[int, str], int]]:
     """
     Genera todos los estados del autómata LR(0):
      1. Estado 0 = closure({ S' → · S })
@@ -57,3 +59,36 @@ def items(productions: dict, start_symbol: str) -> (list[State], dict):
      3. Si J no es vacío ni está en la lista, lo añades como nuevo estado.
     Devuelve la lista de estados y un map de transiciones {(i, X): j}.
     """
+    # Preparar producción aumentada S' → start_symbol
+    augmented_start = f"{start_symbol}'"
+    prods = {augmented_start: [[start_symbol]], **productions}
+
+    # Estado inicial: closure({ Item(augmented_start, (start_symbol,), 0) })
+    init_item = Item(lhs=augmented_start, rhs=(start_symbol,), dot=0)
+    init_closure = closure({init_item}, prods)
+    states = [State(id=0, items=frozenset(init_closure))]
+    transitions = {}
+
+    # Iterar sobre estados y todos los símbolos
+    changed = True
+    while changed:
+        changed = False
+        for state in list(states):
+            for symbol in set(
+                sym for item in state.items
+                for sym in (item.rhs[item.dot:item.dot+1] if item.dot < len(item.rhs) else [])
+            ):
+                target = goto(state.items, symbol, prods)
+                if not target:
+                    continue
+                # comprobar si ya existe un estado con esos ítems
+                existing = next((s for s in states if s.items == frozenset(target)), None)
+                if existing is None:
+                    new_id = len(states)
+                    states.append(State(id=new_id, items=frozenset(target)))
+                    transitions[(state.id, symbol)] = new_id
+                    changed = True
+                else:
+                    transitions[(state.id, symbol)] = existing.id
+
+    return states, transitions
