@@ -1,0 +1,42 @@
+inicioPrograma123 FinalDeLaLinea666
++
+( 1234567890 - (999 * 888) ) + ) // comentario falso
+
+palabrañÚnica ünicaPalabra ∑imbolo
+
+\t\tEstoEs\tUnaCadenaCon\tTabsYEspacios
+
+(((WORD1+WORD2)-(WORD3*WORD4)) / WORD5)))))
+
+NúmeroConError# 999! !@@@### 
+
+a b c d e f g h i j k l m n o p q r s t u v w x y z
+
+0 1 2 3 4 5 6 7 8 9
+
+líneaVacía1
+
+     
+líneaVacía2
+
+/* comentario multilinea mal soportado */
+
+TOKEN123+(999-(badToken!
+
+
+
+
+Hola123 mundo42    pruebaMAX123
+\t\tEstoEsUnTest987     +   (1234 -    (56 * 78))
+
+abcd1234efg ( -9988 + 44)	+
+
++
+-
+*
+(
+)
+
+\ndatoFinal\t\t
+
+###EstoNoDebeSerReconocido!!!

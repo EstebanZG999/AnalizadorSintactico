@@ -1,0 +1,61 @@
+(* Gramática *)
+
+(* --- Header: código que se copia al inicio del .py generado --- *)
+{ 
+  from src.runtime.token_types import *
+}
+
+(* --- Definiciones de clases de caracteres --- *)
+let delim    = [' ' '\t']
+let ws       = delim+
+let letter   = ['A'-'Z''a'-'z']
+let digit    = ['0'-'9']
+let alnum    = letter | digit | '_'          
+let id       = letter (alnum)*                
+let number   = digit+('.'digit+)?('E'('+'|'-')?digit+)?
+
+rule tokens =
+    ws                          { return None }
+  | "###".*[\n]                 { return None }
+  | '\n'                        { return EOL }
+
+  /* ——— Keywords ——— */
+  | "if"                        { return (IF,       lexeme) }
+  | "else"                      { return (ELSE,     lexeme) }
+  | "while"                     { return (WHILE,    lexeme) }
+  | "for"                       { return (FOR,      lexeme) }
+  | "return"                    { return (RETURN,   lexeme) }
+  | "break"                     { return (BREAK,    lexeme) }
+  | "continue"                  { return (CONTINUE, lexeme) }
+
+  /* ——— IDs y números ——— */
+  | id                          { return (ID,       lexeme) }
+  | number                      { return (NUMBER,   lexeme) }
+
+  /* ——— Operadores y puntuación ——— */
+  | ":="                        { return (ASSIGNOP, lexeme) }
+  | '+'                         { return (PLUS,     lexeme) }
+  | '-'                         { return (MINUS,    lexeme) }
+  | '*'                         { return (TIMES,    lexeme) }
+  | '/'                         { return (DIV,      lexeme) }
+  | '('                         { return (LPAREN,   lexeme) }
+  | ')'                         { return (RPAREN,   lexeme) }
+  | ','                         { return (COMMA,    lexeme) }
+  | ';'                         { return (SEMICOLON,lexeme) }
+  | ':'                         { return (COLON,    lexeme) }
+  | '<'                         { return (LT,       lexeme) }
+  | '='                         { return (EQ,       lexeme) }
+  | '>'                         { return (GT,       lexeme) }
+  | '{'                         { return (LBRACE,   lexeme) }
+  | '}'                         { return (RBRACE,   lexeme) }
+  | '#'                         { return (HASH,     lexeme) }
+  | eof                         { return (EOF,      lexeme) }
+
+  /* ——— Catch-all al final ——— */
+  | .                           { return (SYMBOL,   lexeme) }
+
+
+(* --- Trailer: código que se copia al final del .py generado --- *)
+{ 
+  /* añadir cualquier cleanup o funciones auxiliares */
+}
