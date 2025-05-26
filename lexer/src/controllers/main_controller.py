@@ -1,14 +1,14 @@
-# src/controllers/main_controller.py
+# lexer/src/controllers/main_controller.py
 
 import os
 import re
 import contextlib, io
 import textwrap
-from src.models.regex_parser import RegexParser
-from src.models.syntax_tree import SyntaxTree
-from src.models.dfa import DFA
-from src.models.yalex_parser import YALexParser
-from src.models.mindfa import minimize_dfa
+from lexer.src.models.regex_parser import RegexParser
+from lexer.src.models.syntax_tree import SyntaxTree
+from lexer.src.models.dfa import DFA
+from lexer.src.models.yalex_parser import YALexParser
+from lexer.src.models.mindfa import minimize_dfa
 
 
 def generate_global_dfa():
@@ -227,7 +227,7 @@ def generate_lexer():
         if header:
             f.write(header + "\n\n")
         else:
-            f.write("from src.runtime.token_types import *\n\n")
+            f.write("from lexer.src.runtime.token_types import *\n\n")
         # 3) definimos PUNCTUATIONS
         f.write("# Mapa de puntuaciones generado según las reglas de la gramática\n")
         f.write("PUNCTUATIONS = {\n")
@@ -317,9 +317,9 @@ def generate_lexer():
         f.write("        rules = []\n")
         # Para cada regla, se genera el código que recrea el DFA (con la misma expresión expandida)
         for rule in rules:
-            f.write("        from src.models.regex_parser import RegexParser\n")
-            f.write("        from src.models.syntax_tree import SyntaxTree\n")
-            f.write("        from src.models.dfa import DFA\n")
+            f.write("        from lexer.src.models.regex_parser import RegexParser\n")
+            f.write("        from lexer.src.models.syntax_tree import SyntaxTree\n")
+            f.write("        from lexer.src.models.dfa import DFA\n")
             f.write(f"        # Regla: {rule['regex']}\n")
             f.write(f"        parser = RegexParser({rule['regex']!r} + '#')\n")
             f.write("        parser.tokenize()\n")

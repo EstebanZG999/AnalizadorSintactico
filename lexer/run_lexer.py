@@ -1,6 +1,6 @@
 import sys
 import os
-from src.controllers.main_controller import generate_lexer, generate_global_dfa
+from lexer.src.controllers.main_controller import generate_lexer, generate_global_dfa
 
 # Asegurarnos de que el directorio raíz y 'src' estén en el path
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))

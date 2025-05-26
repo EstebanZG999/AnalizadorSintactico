@@ -1,4 +1,4 @@
-# src/models/syntax_tree.py
+# lexer.src/models/syntax_tree.py
 
 import os
 import graphviz

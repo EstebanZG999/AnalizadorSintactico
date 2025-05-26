@@ -2,7 +2,7 @@
 
 (* --- Header: código que se copia al inicio del .py generado --- *)
 { 
-  from src.runtime.token_types import *
+  from lexer.src.runtime.token_types import *
 }
 
 (* --- Definiciones de clases de caracteres --- *)

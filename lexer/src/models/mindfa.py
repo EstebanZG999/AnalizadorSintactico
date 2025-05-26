@@ -1,7 +1,7 @@
-# src/models/mindfa.py
+# lexer.src/models/mindfa.py
 
 import os
-from .dfa import DFA
+from dfa import DFA
 import graphviz
 
 def minimize_dfa(dfa: DFA) -> DFA:

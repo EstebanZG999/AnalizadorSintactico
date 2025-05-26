@@ -1,7 +1,7 @@
-# src/models/dfa.py
+# lexer.src/models/dfa.py
 import os
 import graphviz
-from src.models.syntax_tree import NodoHoja, NodoBinario, NodoUnario, SyntaxTree
+from lexer.src.models.syntax_tree import NodoHoja, NodoBinario, NodoUnario, SyntaxTree
 
 class DFA:
     def __init__(self, syntax_tree):
