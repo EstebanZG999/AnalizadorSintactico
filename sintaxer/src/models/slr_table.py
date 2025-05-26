@@ -1,5 +1,5 @@
 from typing import List, Dict, Tuple, Set
-from src.models.lr0 import State, Item
+from sintaxer.src.models.lr0 import State, Item
 
 def construct_slr_table(
     states: List[State],

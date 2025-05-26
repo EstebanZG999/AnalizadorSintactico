@@ -1,3 +1,5 @@
+# sintaxer/src/generators/parser_generator.py
+
 import sys
 from typing import Dict, List, Tuple, Any
 
@@ -79,7 +81,7 @@ def generate_parser_file(
     lines.append("        print(f'Usage: {sys.argv[0]} <input_file>')")
     lines.append("        sys.exit(1)")
     lines.append("    filename = sys.argv[1]")
-    lines.append("    from src.runtime.parser_interface import LexerInterface")
+    lines.append("    from sintaxer.src.runtime.parser_interface import LexerInterface")
     lines.append("    text = open(filename).read()")
     lines.append("    tokens = LexerInterface.tokenize(text)")
     lines.append("    Parser.parse(tokens)")

@@ -1,0 +1,3 @@
+%token NUMBER \d+
+%%
+Expr → NUMBER '+' NUMBER ';'

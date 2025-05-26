@@ -6,8 +6,8 @@ root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, root)
 
 import pytest
-from src.models.lr0 import Item, State, closure, goto, items
-from src.models.slr_table import construct_slr_table
+from sintaxer.src.models.lr0 import Item, State, closure, goto, items
+from sintaxer.src.models.slr_table import construct_slr_table
 
 @pytest.fixture
 def simple_production():
