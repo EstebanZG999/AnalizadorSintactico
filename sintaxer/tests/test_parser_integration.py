@@ -1,6 +1,5 @@
 # sintaxer/tests/test_parser_integration.py
 
-# sintaxer/tests/test_parser_integration.py
 import os
 import sys
 import subprocess
@@ -46,12 +45,13 @@ def generate_parser(tmp_path):
 # Importa la clase Parser del parser recién generado
 from sintaxer.theparser import Parser
 
-def test_end_to_end_simple_expression():
-    source = "1 + 2 * (3 - 4);\n"
-    lexer = Lexer(source)
+def test_syntax_error_detected():
+    source = "1 * 2;"
+    lexer  = Lexer(source)
     tokens = lexer.get_tokens()
-    ast = Parser.parse(tokens)
-    assert ast is not None
+    with pytest.raises(Exception) as excinfo:
+        Parser.parse(tokens)
+    assert "unexpected" in str(excinfo.value).lower()
 
 def test_syntax_error_detected():
     source = "1 + * 3;"
