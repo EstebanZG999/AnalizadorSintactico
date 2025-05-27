@@ -1,3 +1,5 @@
+# sintaxer/src/models/slr_table.py
+
 from typing import List, Dict, Tuple, Set
 from sintaxer.src.models.lr0 import State, Item
 
