@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+# sintaxer/run_parser.py
+
 import sys
 import os
 
@@ -43,11 +44,18 @@ def main():
     first = compute_first(productions_aug)
     follow = compute_follow(productions_aug, start_symbol, first)
 
-    # 4) Construir estados LR(0)
+    # 4) Construir estados LR(0) sobre la gramática 
     states, transitions = build_states(productions, start_symbol)
 
     # 5) Construir tablas SLR(1) con productions_aug (para detectar accept)
     action, goto = construct_slr_table(states, transitions, productions_aug, follow)
+
+    # ——— DEBUG: imprime la tabla ACTION ———
+    print("\n=== ACTION TABLE ===")
+    for (st, sym), inst in sorted(action.items()):
+        print(f"  (state={st!r}, sym={sym!r}) -> {inst!r}")
+    print("====================\n")
+
 
     # 6) Generar theparser.py usando solo productions originales
     base_dir = os.path.dirname(__file__)
