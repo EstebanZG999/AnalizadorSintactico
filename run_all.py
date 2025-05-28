@@ -1,43 +1,40 @@
-#!/usr/bin/env python3
+# run_all.py
+
 import sys
+import os
+
 from lexer.thelexer import Lexer
-from sintaxer.src.runtime.parser_interface import Parser
-from sintaxer.src.runtime.error_reporting import format_error
+from sintaxer.theparser import Parser  
 
 def main():
     if len(sys.argv) != 2:
-        print("Uso: run_all.py <archivo_fuente>")
+        print(f"Usage: {os.path.basename(sys.argv[0])} <source_file>")
         sys.exit(1)
 
-    fuente = sys.argv[1]
+    source_file = sys.argv[1]
     try:
-        text = open(fuente, encoding="utf-8").read()
-    except IOError as e:
-        print(f"Error al leer '{fuente}': {e}")
+        text = open(source_file, encoding="utf-8").read()
+    except OSError as e:
+        print(f"[IO Error] Cannot read '{source_file}': {e}")
         sys.exit(1)
 
-    # 1. Léxico
+    # 1) Análisis léxico
     try:
-        lexer = Lexer(text)
+        lexer  = Lexer(text)
         tokens = lexer.get_tokens()
     except Exception as e:
-        print("Error en el lexer:", e)
-        sys.exit(1)
+        print(f"[Lexical Error] {e}")
+        sys.exit(2)
 
-    print("→ Tokens generados:")
-    for tok in tokens:
-        print("   ", tok)
-
-    # 2. Sintaxis
-    parser = Parser()
+    # 2) Análisis sintáctico
     try:
-        ast = parser.parse(tokens)
-        print("\n✓ AST generado con éxito:")
-        print(ast)
+        Parser.parse(tokens)
+        print("Parsing completed successfully.")
+        sys.exit(0)
     except Exception as e:
-        print("\n✗ Error en el parser:")
-        print(format_error(e))
-        sys.exit(1)
+        print(f"[Syntax Error] {e}")
+        sys.exit(3)
+
 
 if __name__ == "__main__":
     main()
