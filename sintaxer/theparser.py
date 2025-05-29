@@ -5,7 +5,7 @@ import sys
 from typing import List, Tuple, Any
 
 class Parser:
-    ACTION = {(1, '$'): ('accept', None), (5, '$'): ('reduce', 0)}
+    ACTION = {(0, 'NUMBER'): ('shift', 2), (2, 'PLUS'): ('shift', 3), (3, 'NUMBER'): ('shift', 4), (4, 'SEMICOLON'): ('shift', 5), (1, '$'): ('accept', None), (5, '$'): ('reduce', 0)}
     GOTO = {(0, 'expr'): 1}
     PRODUCTIONS = [('expr', ['NUMBER', 'PLUS', 'NUMBER', 'SEMICOLON'])]
     START = 'expr'
@@ -20,11 +20,28 @@ class Parser:
         """Ejecuta el parsing shift-reduce. tokens: lista de (terminal, valor), sin EOF."""
         cls._init_tables()
         stack: List[int] = [0]
+        # Mapear el EOF que venga del lexer al marcador '$'
+        tokens = [( '$', None) if term == 'EOF' else (term, val) for term, val in tokens]
         tokens = tokens + [('$', None)]  # EOF
         pos = 0
+        # Detectar estado de aceptación dinámicamente
+        ACCEPT_STATE = None
+        for (st, sym), inst in cls.ACTION.items():
+            if sym == '$' and inst[0] == 'accept':
+                ACCEPT_STATE = st
+                break
+
         while True:
             state = stack[-1]
             term, _ = tokens[pos]
+            # Si el parser ve literal 'EOF', lo trata como fin de input
+            if term == 'EOF':
+                term = '$'
+            # Si estamos en EOF y en el estado de aceptación, terminamos
+            if term == '$' and state == ACCEPT_STATE:
+                return
+
+            print(f"DEBUG-PARSE → state={state}, term={term!r}, ACCEPT_STATE={ACCEPT_STATE}")
             action = cls.ACTION.get((state, term))
             if action is None:
                 raise SyntaxError(f'Syntax error at position {pos}, unexpected token {term}')
