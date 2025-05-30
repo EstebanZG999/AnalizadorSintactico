@@ -5,10 +5,10 @@ import sys
 from typing import List, Tuple, Any
 
 class Parser:
-    ACTION = {(0, 'NUMBER'): ('shift', 2), (2, 'PLUS'): ('shift', 3), (3, 'NUMBER'): ('shift', 4), (4, 'SEMICOLON'): ('shift', 5), (1, '$'): ('accept', None), (5, '$'): ('reduce', 0)}
-    GOTO = {(0, 'expr'): 1}
-    PRODUCTIONS = [('expr', ['NUMBER', 'PLUS', 'NUMBER', 'SEMICOLON'])]
-    START = 'expr'
+    ACTION = {(0, 'NUMBER'): ('shift', 2), (2, 'PLUS'): ('shift', 4), (3, 'SEMICOLON'): ('shift', 5), (4, 'NUMBER'): ('shift', 6), (1, '$'): ('accept', None), (5, '$'): ('reduce', 0), (6, 'SEMICOLON'): ('reduce', 1)}
+    GOTO = {(0, 's'): 1, (0, 'p'): 3}
+    PRODUCTIONS = [('s', ['p', 'SEMICOLON']), ('p', ['NUMBER', 'PLUS', 'NUMBER'])]
+    START = 's'
 
     @classmethod
     def _init_tables(cls):
