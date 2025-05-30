@@ -2,6 +2,7 @@
 
 import sys
 import os
+import argparse
 
 # Aseguramos que el paquete sintaxer esté en el path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -13,55 +14,131 @@ from sintaxer.src.models.lr0 import items as build_states
 from sintaxer.src.models.slr_table import construct_slr_table
 from sintaxer.src.generators.parser_generator import generate_parser_file
 
-def main():
-    if len(sys.argv) != 2:
-        print(f"Usage: {sys.argv[0]} <grammar_file.yalp>")
-        sys.exit(1)
 
-    grammar_file = sys.argv[1]
-    # Debug: mostrar el fichero
+def print_grammar(productions):
+    print("\n=== Gramática extendida ===")
+    for idx, (lhs, rhs_list) in enumerate(productions):
+        rhss = [" ".join(rhs) for rhs in rhs_list]
+        print(f"{idx}. {lhs} → {' | '.join(rhss)}")
+
+
+def print_automaton(states, transitions):
+    print("\n=== Autómata LR(0) ===")
+    for sid, state in enumerate(states):
+        print(f"I{sid}:")
+        # Intentar iterar items en State o en atributo 'items'
+        state_items = None
+        if hasattr(state, '__iter__'):
+            state_items = state
+        elif hasattr(state, 'items'):
+            state_items = state.items
+        else:
+            state_items = [state]
+        for item in state_items:
+            print(f"  {format_item(item)}")
+        for symbol, dest in transitions.get(sid, {}).items():
+            print(f"  (I{sid}, {symbol!r}) → I{dest}")
+
+
+def print_tables(action, goto):
+    try:
+        from tabulate import tabulate
+    except ImportError:
+        print("Instala 'tabulate' para mejor visualización de tablas.")
+        return
+    # Determinar alfabetos
+    terminals = sorted({sym for (s, sym) in action.keys()})
+    nonterms = sorted({nt for (s, nt) in goto.keys()})
+    headers = ["Estado"] + terminals + nonterms
+    max_state = max(
+        max((s for (s, _) in action.keys()), default=0),
+        max((s for (s, _) in goto.keys()), default=0)
+    )
+    table = []
+    for s in range(max_state + 1):
+        row = [s]
+        for t in terminals:
+            row.append(action.get((s, t), ""))
+        for A in nonterms:
+            row.append(goto.get((s, A), ""))
+        table.append(row)
+    print("\n=== Tabla SLR(1) (ACTION | GOTO) ===")
+    print(tabulate(table, headers=headers, tablefmt="github"))
+    
+
+def format_item(item):
+    # item.lhs  = 'Q'
+    # item.rhs  = ('[', 'S', ']')
+    # item.dot  = posición del punto
+    parts = []
+    for i, sym in enumerate(item.rhs):
+        if i == item.dot:
+            parts.append('·')
+        parts.append(sym)
+    # si el punto va al final
+    if item.dot == len(item.rhs):
+        parts.append('·')
+    return f"{item.lhs} → {' '.join(parts)}"
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Genera y muestra artefactos de un parser SLR(1) desde un archivo .yalp"
+    )
+    parser.add_argument("grammar_file")
+    parser.add_argument("--show-grammar", action="store_true")
+    parser.add_argument("--show-automaton", action="store_true")
+    parser.add_argument("--show-tables", action="store_true")
+    args = parser.parse_args()
+
+    grammar_file = args.grammar_file
+
+    # Mostrar y leer archivo
     print(f"--- Leyendo gramática desde: {os.path.abspath(grammar_file)} ---")
     with open(grammar_file, 'r', encoding='utf-8') as f:
-        for i, l in enumerate(f, 1):
-            print(f"{i:3}: {l.rstrip()}")
+        for i, line in enumerate(f, 1):
+            print(f"{i:3}: {line.rstrip()}")
 
-    # 1) Parsear la gramática
+    # Parsear la gramática
     yalp = YalpParser()
     yalp.parse_file(grammar_file)
     productions = yalp.productions
-    print("→ Producciones parseadas:", productions)
     if not productions:
-        print("No productions found")
+        print("No se encontraron producciones")
         sys.exit(1)
+    print("→ Producciones parseadas:", productions)
 
-    # 2) Preparamos la producción aumentada
-    start_symbol = next(iter(productions))
-    augmented_start = f"{start_symbol}'"
-    # productions_aug incluye la producción aumentada S' -> S
-    productions_aug = {augmented_start: [[start_symbol]], **productions}
+    # Determinar símbolo inicial *desde* las claves de productions
+    start_symbol = next(iter(productions))  # p.ej. 's' en tu grammar
+    # Extender gramática con S' → S
+    productions_aug = {f"{start_symbol}'": [[start_symbol]], **productions}
+    if args.show_grammar:
+        print_grammar(list(productions_aug.items()))
 
-    # 3) Calcular FIRST y FOLLOW sobre productions_aug
+    # FIRST / FOLLOW
     first = compute_first(productions_aug)
     follow = compute_follow(productions_aug, start_symbol, first)
 
-    # 4) Construir estados LR(0) sobre la gramática 
+    # Construir LR(0)
     states, transitions = build_states(productions, start_symbol)
+    if args.show_automaton:
+        print_automaton(states, transitions)
 
-    # 5) Construir tablas SLR(1) con productions_aug (para detectar accept)
+    # Tablas SLR(1)
     action, goto = construct_slr_table(states, transitions, productions_aug, follow)
+    if args.show_tables:
+        print_tables(action, goto)
 
-    # ——— DEBUG: imprime la tabla ACTION ———
-    print("\n=== ACTION TABLE ===")
+    # DEBUG: volcar ACTION
+    print("\n=== DEBUG: ACTION TABLE ===")
     for (st, sym), inst in sorted(action.items()):
         print(f"  (state={st!r}, sym={sym!r}) -> {inst!r}")
-    print("====================\n")
+    print("============================\n")
 
-
-    # 6) Generar theparser.py usando solo productions originales
-    base_dir = os.path.dirname(__file__)
-    output_path = os.path.join(base_dir, "theparser.py")
+    # Generar theparser.py
+    output_path = os.path.join(os.path.dirname(__file__), "theparser.py")
     generate_parser_file(action, goto, productions, start_symbol, output_path)
     print(f"Parser generado exitosamente en: {output_path}")
+
 
 if __name__ == "__main__":
     main()
