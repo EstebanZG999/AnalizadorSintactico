@@ -1,0 +1,15 @@
+/* INICIA Sección de TOKENS */
+%token WS        [ \t]+
+IGNORE WS
+%token NUMBER    \d+
+%token PLUS      \+
+%token SEMICOLON ;
+%%
+/* INICIA Sección de PRODUCCIONES */
+s:
+      p SEMICOLON
+;
+p:
+      NUMBER PLUS NUMBER
+;
+/* FINALIZA Sección de PRODUCCIONES */

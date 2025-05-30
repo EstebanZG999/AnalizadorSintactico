@@ -1,3 +1,5 @@
+# sintaxer/src/generators/parser_generator.py
+
 import sys
 from typing import Dict, List, Tuple, Any
 
@@ -47,11 +49,28 @@ def generate_parser_file(
     lines.append("        \"\"\"Ejecuta el parsing shift-reduce. tokens: lista de (terminal, valor), sin EOF.\"\"\"")
     lines.append("        cls._init_tables()")
     lines.append("        stack: List[int] = [0]")
+    lines.append("        # Mapear el EOF que venga del lexer al marcador '$'")
+    lines.append("        tokens = [( '$', None) if term == 'EOF' else (term, val) for term, val in tokens]")
     lines.append("        tokens = tokens + [('$', None)]  # EOF")
     lines.append("        pos = 0")
+    lines.append("        # Detectar estado de aceptación dinámicamente")
+    lines.append("        ACCEPT_STATE = None")
+    lines.append("        for (st, sym), inst in cls.ACTION.items():")
+    lines.append("            if sym == '$' and inst[0] == 'accept':")
+    lines.append("                ACCEPT_STATE = st")
+    lines.append("                break")
+    lines.append("")
     lines.append("        while True:")
     lines.append("            state = stack[-1]")
     lines.append("            term, _ = tokens[pos]")
+    lines.append("            # Si el parser ve literal 'EOF', lo trata como fin de input")
+    lines.append("            if term == 'EOF':")
+    lines.append("                term = '$'")
+    lines.append("            # Si estamos en EOF y en el estado de aceptación, terminamos")
+    lines.append("            if term == '$' and state == ACCEPT_STATE:")
+    lines.append("                return")
+    lines.append("") 
+    lines.append('            print(f"DEBUG-PARSE → state={state}, term={term!r}, ACCEPT_STATE={ACCEPT_STATE}")')
     lines.append("            action = cls.ACTION.get((state, term))")
     lines.append("            if action is None:")
     lines.append("                raise SyntaxError(f'Syntax error at position {pos}, unexpected token {term}')")
@@ -79,7 +98,7 @@ def generate_parser_file(
     lines.append("        print(f'Usage: {sys.argv[0]} <input_file>')")
     lines.append("        sys.exit(1)")
     lines.append("    filename = sys.argv[1]")
-    lines.append("    from src.runtime.parser_interface import LexerInterface")
+    lines.append("    from sintaxer.src.runtime.parser_interface import LexerInterface")
     lines.append("    text = open(filename).read()")
     lines.append("    tokens = LexerInterface.tokenize(text)")
     lines.append("    Parser.parse(tokens)")

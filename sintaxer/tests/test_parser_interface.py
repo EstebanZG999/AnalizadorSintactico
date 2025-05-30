@@ -1,5 +1,5 @@
 import pytest
-from src.runtime.parser_interface import parse
+from sintaxer.src.runtime.parser_interface import parse
 
 # Gramática simple: S -> 'a'
 action = {(0,'a'): ('shift',1), (1,'$'):('accept',None)}

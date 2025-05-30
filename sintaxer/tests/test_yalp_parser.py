@@ -6,7 +6,7 @@ test_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, test_root)
 
 import pytest
-from src.models.yalp_parser import YalpParser
+from sintaxer.src.models.yalp_parser import YalpParser
 
 @pytest.fixture
 def yalp_file(tmp_path):

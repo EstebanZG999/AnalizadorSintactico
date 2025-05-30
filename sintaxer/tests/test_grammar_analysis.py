@@ -8,7 +8,7 @@ root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, root)
 
 import pytest
-from src.models.grammar_analysis import compute_first, compute_follow
+from sintaxer.src.models.grammar_analysis import compute_first, compute_follow
 
 @pytest.fixture
 def arithmetic_grammar():
