@@ -1,26 +1,132 @@
 /* Definición de parser */
 
 /* INICIA Sección de TOKENS */
-%token TOKEN_1
-%token TOKEN_2
-%token TOKEN_3 TOKEN_4
-%token WS
+%token WS        [ \t]+
 IGNORE WS
+
+%token NUMBER    \d+
+%token ID        [A-Za-z][A-Za-z0-9_]*
+%token PLUS      \+
+%token MINUS     \-
+%token TIMES     \*
+%token DIV       /
+%token ASSIGNOP  :=
+
+%token SEMICOLON ;
+%token EOL       \n
+
+%token IF        if
+%token ELSE      else
+%token WHILE     while
+%token FOR       for
+%token RETURN    return
+%token BREAK     break
+%token CONTINUE  continue
+
+%token LPAREN    \(
+%token RPAREN    \)
+%token LBRACE    \{
+%token RBRACE    \}
+
+%token COMMA     ,
+%token COLON     :
+%token LT        <
+%token EQ        =
+%token GT        >
+
+%token HASH      \#
+%token EOF       eof
+
+%token SYMBOL    .
 /* FINALIZA Sección de TOKENS */
+
+/* Declaración de precedencias y asociatividades */
+
+/* Para evitar el “dangling else”*/
+%nonassoc LOWER_THAN_ELSE
+%nonassoc ELSE
+
+/* Precedencia de operadores de comparación */
+%left LT EQ GT
+
+/* Precedencia aritmética */
+%left PLUS MINUS
+%left TIMES DIV
+
+/* Asignaciones son asociativas a la derecha */
+%right ASSIGNOP
+
+/* Esto evita la mayoría de conflictos shift/reduce al manejar expresiones */
 
 %%
 
 /* INICIA Sección de PRODUCCIONES */
-production1:
-      production1 TOKEN_2 production2
-    | production2
+
+/* 1. Punto de entrada: un programa que es una lista de sentencias terminada en EOF */
+program:
+      stmt_list EOF
 ;
-production2:
-      production2 TOKEN_2 production3
-    | production3
+
+/* 2. Una lista de sentencias (al menos una) */
+stmt_list:
+      /* vacío */
+    | stmt_list stmt
 ;
-production3:
-      TOKEN_3 production1 TOKEN_4
-    | TOKEN_1
+
+/* 3. Una sentencia puede ser: */
+stmt:
+    /* 3.1. Una expresión seguida de ';' */
+    | expr SEMICOLON                                                       { /* Nodo AST: expresión simple segida de punto‐y‐coma */ }
+    /* 3.2. Un bloque de sentencias entre llaves */
+    | LBRACE stmt_list RBRACE                                              { /* Nodo AST: bloque (stmt_list) */ }
+    /* 3.3. if (condición) sentencia [else sentencia] */
+    | IF LPAREN expr RPAREN stmt %prec LOWER_THAN_ELSE                     { /* Nodo AST: if-else */ }
+    | IF LPAREN expr RPAREN stmt ELSE stmt                                 { /* Nodo AST: if‐else */ }
+    /* 3.4. while (condición) sentencia */
+    | WHILE LPAREN expr RPAREN stmt                                        { /* Nodo AST: while */ }
+    /* 3.5. for (inicialización; condición; actualización) sentencia */
+    | FOR LPAREN expr SEMICOLON expr SEMICOLON expr RPAREN stmt            { /* Nodo AST: for */ }
+    /* 3.6. return expr ; */
+    | RETURN expr SEMICOLON                                                { /* Nodo AST: return */ }
+    /* 3.7. break ; */
+    | BREAK SEMICOLON                                                      { /* Nodo AST: break */ }
+    /* 3.8. continue ; */
+    | CONTINUE SEMICOLON                                                   { /* Nodo AST: continue */ }
+;
+
+/* 4. Definición de expresiones: */
+/* 4.1. Expresiones de asignación (asociativo a la derecha): a = expr */
+expr: 
+      ID ASSIGNOP expr                                                     { /* Nodo AST: asignación */ }
+    | comp_expr
+;
+
+/* 4.2. Comparaciones ( <, =, > ) */
+comp_expr: 
+      comp_expr LT add_expr                                                { /* Nodo AST: comparación < */ }
+    | comp_expr EQ add_expr                                                { /* Nodo AST: comparación = */ }
+    | comp_expr GT add_expr                                                { /* Nodo AST: comparación > */ }
+    | add_expr
+;
+
+/* 4.3. Suma y resta (asociativo a la izquierda) */
+add_expr: 
+      add_expr PLUS mul_expr                                               { /* Nodo AST: suma */ }
+    | add_expr MINUS mul_expr                                              { /* Nodo AST: resta */ }
+    | mul_expr
+;
+
+/* 4.4. Multiplicación y división */
+mul_expr: 
+      mul_expr TIMES atom                                                  { /* Nodo AST: multiplicación */ }
+    | mul_expr DIV atom                                                    { /* Nodo AST: división */ }
+    | atom
+;
+
+/* 4.5. “Átomo”: paréntesis, identificador o número */
+atom: 
+      LPAREN expr RPAREN                                                   { /* Nodo AST: paréntesis */ }
+    | ID                                                                   { /* Nodo AST: variable */ }
+    | NUMBER                                                               { /* Nodo AST: constante numérica */ }
 ;
 /* FINALIZA Sección de PRODUCCIONES */
