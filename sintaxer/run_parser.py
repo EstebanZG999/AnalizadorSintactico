@@ -22,6 +22,18 @@ def print_grammar(productions):
         print(f"{idx}. {lhs} → {' | '.join(rhss)}")
 
 
+def print_first_follow(productions_aug, first, follow):
+    print("\n=== Conjuntos FIRST y FOLLOW ===")
+    for nt in productions_aug:
+        # Omitir la producción aumentada (propia) si termina en "'"
+        if nt.endswith("'"):
+            continue
+        fset = ", ".join(sorted(first.get(nt, [])))
+        fol  = ", ".join(sorted(follow.get(nt, [])))
+        print(f"FIRST({nt}) = {{ {fset} }}")
+        print(f"FOLLOW({nt}) = {{ {fol} }}")
+
+
 def print_automaton(states, transitions):
     print("\n=== Autómata LR(0) ===")
     for sid, state in enumerate(states):
@@ -84,10 +96,12 @@ def main():
     parser = argparse.ArgumentParser(
         description="Genera y muestra artefactos de un parser SLR(1) desde un archivo .yalp"
     )
-    parser.add_argument("grammar_file")
-    parser.add_argument("--show-grammar", action="store_true")
-    parser.add_argument("--show-automaton", action="store_true")
-    parser.add_argument("--show-tables", action="store_true")
+    parser.add_argument("grammar_file", help="Ruta al archivo YAPar (.yalp) con la gramática")
+    parser.add_argument("--show-grammar", action="store_true", help="Muestra la gramática extendida numerada")
+    parser.add_argument("--show-first-follow", action="store_true", help="Muestra los conjuntos FIRST y FOLLOW")
+    parser.add_argument("--show-automaton", action="store_true", help="Muestra el autómata LR(0) completo")
+    parser.add_argument("--show-tables", action="store_true", help="Muestra las tablas ACTION y GOTO")
+    parser.add_argument("--show-parse", action="store_true", help="Muestra la traza de parseo")
     args = parser.parse_args()
 
     grammar_file = args.grammar_file
@@ -117,6 +131,8 @@ def main():
     # FIRST / FOLLOW
     first = compute_first(productions_aug)
     follow = compute_follow(productions_aug, start_symbol, first)
+    if args.show_first_follow:
+        print_first_follow(productions_aug, first, follow)
 
     # Construir LR(0)
     states, transitions = build_states(productions, start_symbol)
@@ -127,6 +143,50 @@ def main():
     action, goto = construct_slr_table(states, transitions, productions_aug, follow)
     if args.show_tables:
         print_tables(action, goto)
+    
+    if args.show_parse:
+        print("\n=== Traza de parseo de ejemplo ===")
+        # Para arithmetic.yalp, la cadena de ejemplo es: 1 + 2 ;
+        # Los tokens relevantes (solo tipos) serán:
+        sample = ["NUMBER", "PLUS", "NUMBER", "SEMICOLON", "$"]
+        stack = [0]
+        idx = 0
+        print(f"Pila\t| Lectura\t\t| Acción")
+        while True:
+            st = stack[-1]
+            tok = sample[idx]
+            inst = action.get((st, tok))
+            if not inst:
+                print(f"Error en estado {st} con token {tok!r}")
+                break
+
+            if inst[0] == "shift":
+                # Mostramos el estado actual de la pila, la lectura restante
+                print(f"{stack}\t| {' '.join(sample[idx:])}\t| shift → estado {inst[1]}")
+                stack.append(inst[1])
+                idx += 1
+
+            elif inst[0] == "reduce":
+                # inst[1] es el índice de la producción en productions_aug
+                prod_items = list(productions_aug.items())
+                lhs, rhs_list = prod_items[inst[1]]
+                # Asumimos que cada producción en productions_aug tiene exactamente una RHS
+                rhs = rhs_list[0]
+
+                # Al reducir, desapilamos tantos símbolos como long(rhss)
+                for _ in range(len(rhs)):
+                    stack.pop()
+
+                st2 = stack[-1]                  # Estado anterior tras desapilar
+                dest = goto.get((st2, lhs))      # GOTO(estado anterior, lhs)
+                stack.append(dest)
+
+                # Imprimimos la acción reduce
+                print(f"{stack}\t| {' '.join(sample[idx:])}\t| reduce {lhs} → {' '.join(rhs)}")
+
+            else:  # accept
+                print(f"{stack}\t| {' '.join(sample[idx:])}\t| accept")
+                break
 
     # DEBUG: volcar ACTION
     print("\n=== DEBUG: ACTION TABLE ===")

@@ -5,8 +5,8 @@ import sys
 from typing import List, Tuple, Any
 
 class Parser:
-    ACTION = {(0, 'NUMBER'): ('shift', 2), (2, 'PLUS'): ('shift', 4), (3, 'SEMICOLON'): ('shift', 5), (4, 'NUMBER'): ('shift', 6), (1, '$'): ('accept', None), (5, '$'): ('reduce', 0), (6, 'SEMICOLON'): ('reduce', 1)}
-    GOTO = {(0, 's'): 1, (0, 'p'): 3}
+    ACTION = {(0, 'NUMBER'): ('shift', 3), (2, 'SEMICOLON'): ('shift', 4), (3, 'PLUS'): ('shift', 5), (5, 'NUMBER'): ('shift', 6), (1, '$'): ('accept', None), (4, '$'): ('reduce', 0), (6, 'SEMICOLON'): ('reduce', 1)}
+    GOTO = {(0, 's'): 1, (0, 'p'): 2}
     PRODUCTIONS = [('s', ['p', 'SEMICOLON']), ('p', ['NUMBER', 'PLUS', 'NUMBER'])]
     START = 's'
 
