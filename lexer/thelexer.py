@@ -70,7 +70,6 @@ class Lexer:
                 pos += longest_match
                 continue
             if longest_match == 1:
-                # Ejecutamos la acción (puede ser None para ws)
                 lexeme = text[pos]
                 action_code = selected_rule['action']
                 local_env = {'lexeme': lexeme, 'text': text}
