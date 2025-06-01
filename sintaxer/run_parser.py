@@ -92,112 +92,140 @@ def format_item(item):
         parts.append('·')
     return f"{item.lhs} → {' '.join(parts)}"
 
+
+def build_parser_artifacts(
+    grammar_file: str,
+    show_grammar: bool,
+    show_first_follow: bool,
+    show_automaton: bool,
+    show_tables: bool,
+    show_parse: bool
+):
+    """
+    1. Parsea la gramática YAPar (.yalp)
+    2. Extiende con S' → start_symbol
+    3. Calcula FIRST / FOLLOW
+    4. Construye LR(0) (states, transitions)
+    5. Construye tablas ACTION y GOTO
+    6. Si los flags están activos, imprime gramática, FIRST/FOLLOW, autómata y tablas.
+    7. Devuelve un dict con action, goto, productions_aug_list, start_symbol, etc.
+    """
+
+    # 1) Leer e imprimir archivo .yalp
+    print(f"--- Leyendo gramática desde: {os.path.abspath(grammar_file)} ---")
+    with open(grammar_file, "r", encoding="utf-8") as f:
+        for i, line in enumerate(f, 1):
+            print(f"{i:3}: {line.rstrip()}")
+
+    # 2) Parsear la gramática en objetos internos
+    yalp = YalpParser()
+    yalp.parse_file(grammar_file)
+    productions = yalp.productions
+    if not productions:
+        print("No se encontraron producciones en la gramática.")
+        sys.exit(1)
+
+    # 3) Determinar símbolo inicial (e.g., 'S')
+    start_symbol = next(iter(productions.keys()))
+
+    # 4) Construir gramática aumentada: S' → S
+    productions_aug = { f"{start_symbol}'": [[start_symbol]] }
+    for lhs, rhss in productions.items():
+        productions_aug[lhs] = rhss
+
+    # 5) Si piden, imprimir la gramática extendida
+    # Para imprimirla numéricamente, necesitamos una lista indexada [ (lhs, [rhs1,rhs2,…]), … ]
+    # Pero print_grammar recibe exactamente esa forma, así que:
+    if show_grammar:
+        # Convertimos dict a lista de tuplas en el orden "first the augmentada, luego las demás en el mismo orden que dict"
+        ordered = list(productions_aug.items())
+        print_grammar(ordered)
+
+    # 6) Calcular FIRST y FOLLOW
+    first  = compute_first(productions_aug)
+    follow = compute_follow(productions_aug, start_symbol, first)
+    if show_first_follow:
+        print_first_follow(productions_aug, first, follow)
+
+    # 7) Construir autómata LR(0)
+    states, transitions = build_states(productions_aug, start_symbol)
+    if show_automaton:
+        print_automaton(states, transitions)
+
+    # 8) Construir tablas SLR(1): action y goto
+    action, goto = construct_slr_table(states, transitions, productions_aug, follow)
+    if show_tables:
+        print_tables(action, goto)
+
+    # 9) Preparar lista indexada de producciones, en el MISMO orden que usó construct_slr_table
+    productions_aug_list = []
+    for lhs, rhss in productions_aug.items():
+        for rhs in rhss:
+            productions_aug_list.append((lhs, rhs))
+    # productions_aug_list[0] es siempre (f"{start_symbol}'", [start_symbol]), etc.
+
+    return {
+        "productions": productions,                  
+        "action": action,
+        "goto": goto,
+        "productions_aug_list": productions_aug_list,
+        "start_symbol": start_symbol,
+        "states": states,
+        "transitions": transitions,
+        "first": first,
+        "follow": follow
+    }
+
 def main():
     parser = argparse.ArgumentParser(
-        description="Genera y muestra artefactos de un parser SLR(1) desde un archivo .yalp"
+        description="Genera artefactos de un parser SLR(1) desde un archivo .yalp"
     )
     parser.add_argument("grammar_file", help="Ruta al archivo YAPar (.yalp) con la gramática")
-    parser.add_argument("--show-grammar", action="store_true", help="Muestra la gramática extendida numerada")
-    parser.add_argument("--show-first-follow", action="store_true", help="Muestra los conjuntos FIRST y FOLLOW")
-    parser.add_argument("--show-automaton", action="store_true", help="Muestra el autómata LR(0) completo")
-    parser.add_argument("--show-tables", action="store_true", help="Muestra las tablas ACTION y GOTO")
-    parser.add_argument("--show-parse", action="store_true", help="Muestra la traza de parseo")
+    parser.add_argument("--show-grammar",      action="store_true", help="Muestra gramática extendida numerada")
+    parser.add_argument("--show-first-follow", action="store_true", help="Muestra FIRST y FOLLOW")
+    parser.add_argument("--show-automaton",    action="store_true", help="Muestra el autómata LR(0)")
+    parser.add_argument("--show-tables",       action="store_true", help="Muestra tablas ACTION y GOTO")
+    parser.add_argument("--show-parse",        action="store_true", help="Muestra traza de parseo genérico (ejemplo)")
+
     args = parser.parse_args()
+    artifacts = build_parser_artifacts(
+        args.grammar_file,
+        args.show_grammar,
+        args.show_first_follow,
+        args.show_automaton,
+        args.show_tables,
+        args.show_parse
+    )
 
-    grammar_file = args.grammar_file
+    originals = artifacts["productions"]
+    start     = artifacts["start_symbol"]
 
+    '''
     # Mostrar y leer archivo
     print(f"--- Leyendo gramática desde: {os.path.abspath(grammar_file)} ---")
     with open(grammar_file, 'r', encoding='utf-8') as f:
         for i, line in enumerate(f, 1):
             print(f"{i:3}: {line.rstrip()}")
 
-    # Parsear la gramática
-    yalp = YalpParser()
-    yalp.parse_file(grammar_file)
-    productions = yalp.productions
-    if not productions:
-        print("No se encontraron producciones")
-        sys.exit(1)
-    print("→ Producciones parseadas:", productions)
-
-    # Determinar símbolo inicial *desde* las claves de productions
-    start_symbol = next(iter(productions))  # p.ej. 's' en tu grammar
-    # Extender gramática con S' → S
-    productions_aug = {f"{start_symbol}'": [[start_symbol]], **productions}
-    if args.show_grammar:
-        print_grammar(list(productions_aug.items()))
-
-    # FIRST / FOLLOW
-    first = compute_first(productions_aug)
-    follow = compute_follow(productions_aug, start_symbol, first)
-    if args.show_first_follow:
-        print_first_follow(productions_aug, first, follow)
-
-    # Construir LR(0)
-    states, transitions = build_states(productions, start_symbol)
-    if args.show_automaton:
-        print_automaton(states, transitions)
-
-    # Tablas SLR(1)
-    action, goto = construct_slr_table(states, transitions, productions_aug, follow)
-    if args.show_tables:
-        print_tables(action, goto)
-    
-    if args.show_parse:
-        print("\n=== Traza de parseo de ejemplo ===")
-        # Para arithmetic.yalp, la cadena de ejemplo es: 1 + 2 ;
-        # Los tokens relevantes (solo tipos) serán:
-        sample = ["NUMBER", "PLUS", "NUMBER", "SEMICOLON", "$"]
-        stack = [0]
-        idx = 0
-        print(f"Pila\t| Lectura\t\t| Acción")
-        while True:
-            st = stack[-1]
-            tok = sample[idx]
-            inst = action.get((st, tok))
-            if not inst:
-                print(f"Error en estado {st} con token {tok!r}")
-                break
-
-            if inst[0] == "shift":
-                # Mostramos el estado actual de la pila, la lectura restante
-                print(f"{stack}\t| {' '.join(sample[idx:])}\t| shift → estado {inst[1]}")
-                stack.append(inst[1])
-                idx += 1
-
-            elif inst[0] == "reduce":
-                # inst[1] es el índice de la producción en productions_aug
-                prod_items = list(productions_aug.items())
-                lhs, rhs_list = prod_items[inst[1]]
-                # Asumimos que cada producción en productions_aug tiene exactamente una RHS
-                rhs = rhs_list[0]
-
-                # Al reducir, desapilamos tantos símbolos como long(rhss)
-                for _ in range(len(rhs)):
-                    stack.pop()
-
-                st2 = stack[-1]                  # Estado anterior tras desapilar
-                dest = goto.get((st2, lhs))      # GOTO(estado anterior, lhs)
-                stack.append(dest)
-
-                # Imprimimos la acción reduce
-                print(f"{stack}\t| {' '.join(sample[idx:])}\t| reduce {lhs} → {' '.join(rhs)}")
-
-            else:  # accept
-                print(f"{stack}\t| {' '.join(sample[idx:])}\t| accept")
-                break
-
     # DEBUG: volcar ACTION
     print("\n=== DEBUG: ACTION TABLE ===")
     for (st, sym), inst in sorted(action.items()):
         print(f"  (state={st!r}, sym={sym!r}) -> {inst!r}")
     print("============================\n")
+    '''
 
-    # Generar theparser.py
+    # Generar theparser.py en sintaxer/theparser.py
     output_path = os.path.join(os.path.dirname(__file__), "theparser.py")
-    generate_parser_file(action, goto, productions, start_symbol, output_path)
-    print(f"Parser generado exitosamente en: {output_path}")
+    # Construir diccionario original + augmentada:
+    prods_for_generator = { f"{start}'": [[start]], **originals }
+    generate_parser_file(
+        artifacts["action"],
+        artifacts["goto"],
+        prods_for_generator,
+        start,
+        output_path
+    )
+    print(f"\nParser generado exitosamente en: {output_path}")
 
 
 if __name__ == "__main__":
