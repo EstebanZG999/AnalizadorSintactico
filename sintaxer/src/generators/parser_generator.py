@@ -7,19 +7,13 @@ from typing import Dict, List, Tuple, Any
 def generate_parser_file(
     action: Dict[Tuple[int, str], Tuple[str, Any]],
     goto: Dict[Tuple[int, str], int],
-    productions: Dict[str, List[List[str]]],
+    prod_list: List[Tuple[str, List[str]]],
     start_symbol: str,
     output_path: str
 ) -> None:
     """
     Genera un archivo Python con la clase Parser para un analizador SLR(1).
     """
-    # Aplanar producciones en lista indexada
-    prod_list: List[Tuple[str, List[str]]] = []
-    for lhs, rhss in productions.items():
-        for rhs in rhss:
-            prod_list.append((lhs, rhs))
-
     # Representaciones literales de tablas y producciones
     action_repr = repr(action)
     goto_repr   = repr(goto)
