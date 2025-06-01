@@ -15,11 +15,10 @@ from sintaxer.src.models.slr_table import construct_slr_table
 from sintaxer.src.generators.parser_generator import generate_parser_file
 
 
-def print_grammar(productions):
+def print_grammar(prod_list):
     print("\n=== Gramática extendida ===")
-    for idx, (lhs, rhs_list) in enumerate(productions):
-        rhss = [" ".join(rhs) for rhs in rhs_list]
-        print(f"{idx}. {lhs} → {' | '.join(rhss)}")
+    for idx, (lhs, rhs) in enumerate(prod_list):
+        print(f"{idx}. {lhs} → {' '.join(rhs)}")
 
 
 def print_first_follow(productions_aug, first, follow):
@@ -137,9 +136,9 @@ def build_parser_artifacts(
     # Para imprimirla numéricamente, necesitamos una lista indexada [ (lhs, [rhs1,rhs2,…]), … ]
     # Pero print_grammar recibe exactamente esa forma, así que:
     if show_grammar:
-        # Convertimos dict a lista de tuplas en el orden "first the augmentada, luego las demás en el mismo orden que dict"
-        ordered = list(productions_aug.items())
-        print_grammar(ordered)
+        # Aplanamos productions_aug en [(lhs, rhs), …] para que print_grammar funcione correctamente
+        flat = [(lhs, rhs) for lhs, rhss in productions_aug.items() for rhs in rhss]
+        print_grammar(flat)
 
     # 6) Calcular FIRST y FOLLOW
     first  = compute_first(productions_aug)
@@ -158,7 +157,7 @@ def build_parser_artifacts(
         print_tables(action, goto)
 
     # 9) Preparar lista indexada de producciones, en el MISMO orden que usó construct_slr_table
-    productions_aug_list = []
+    productions_aug_list = [(lhs, rhs) for lhs, rhss in productions_aug.items() for rhs in rhss]
     for lhs, rhss in productions_aug.items():
         for rhs in rhss:
             productions_aug_list.append((lhs, rhs))
@@ -221,7 +220,7 @@ def main():
     generate_parser_file(
         artifacts["action"],
         artifacts["goto"],
-        prods_for_generator,
+        artifacts["productions_aug_list"],
         start,
         output_path
     )
