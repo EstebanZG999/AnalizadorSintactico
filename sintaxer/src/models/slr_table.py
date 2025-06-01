@@ -77,7 +77,7 @@ def construct_slr_table(
                     # REDUCE: buscamos índice en all_productions
                     prod_index = all_productions.index((item.lhs, list(item.rhs)))
                     # Como PRODUCTIONS en theparser.py sólo contiene las producciones originales
-                    # el parser es prod_index-1.
+                    # el parser es prod_index
                     reduce_index = prod_index
                     for lookahead in follow_sets.get(item.lhs, []):
                         action[(state.id, lookahead)] = ('reduce', reduce_index)

@@ -156,15 +156,33 @@ def build_parser_artifacts(
     if show_tables:
         print_tables(action, goto)
 
-    # 9) Preparar lista indexada de producciones, en el MISMO orden que usó construct_slr_table
-    productions_aug_list = [(lhs, rhs) for lhs, rhss in productions_aug.items() for rhs in rhss]
-    for lhs, rhss in productions_aug.items():
-        for rhs in rhss:
-            productions_aug_list.append((lhs, rhs))
-    # productions_aug_list[0] es siempre (f"{start_symbol}'", [start_symbol]), etc.
+    # 9) Generar de inmediato theparser.py con la tabla recién calculada
+    #     Para ello necesitamos:
+    #      - action
+    #      - goto
+    #      - productions_aug_list
+    #      - start_symbol
+    #     Calculamos productions_aug_list de forma idéntica a como lo usará el parser.
+    productions_aug_list = [
+        (lhs, rhs)
+        for lhs, rhss in productions_aug.items()
+        for rhs in rhss
+    ]
+    #   output_path = carpeta/sintaxer/theparser.py
+    output_path = os.path.join(os.path.dirname(__file__), "theparser.py")
+    generate_parser_file(
+        action,
+        goto,
+        productions_aug_list,
+        start_symbol,
+        output_path
+    )
+    # Generar theparser.py en sintaxer/theparser.py
+    print(f"\nParser generado exitosamente en: {output_path}")
 
+    # 10) Preparar lista indexada de producciones, en el MISMO orden que usó construct_slr_table
     return {
-        "productions": productions,                  
+        "productions": productions,
         "action": action,
         "goto": goto,
         "productions_aug_list": productions_aug_list,
@@ -187,7 +205,8 @@ def main():
     parser.add_argument("--show-parse",        action="store_true", help="Muestra traza de parseo genérico (ejemplo)")
 
     args = parser.parse_args()
-    artifacts = build_parser_artifacts(
+    # Simplemente invocamos build_parser_artifacts para imprimir por pantalla
+    build_parser_artifacts(
         args.grammar_file,
         args.show_grammar,
         args.show_first_follow,
@@ -195,9 +214,6 @@ def main():
         args.show_tables,
         args.show_parse
     )
-
-    originals = artifacts["productions"]
-    start     = artifacts["start_symbol"]
 
     '''
     # Mostrar y leer archivo
@@ -212,20 +228,6 @@ def main():
         print(f"  (state={st!r}, sym={sym!r}) -> {inst!r}")
     print("============================\n")
     '''
-
-    # Generar theparser.py en sintaxer/theparser.py
-    output_path = os.path.join(os.path.dirname(__file__), "theparser.py")
-    # Construir diccionario original + augmentada:
-    prods_for_generator = { f"{start}'": [[start]], **originals }
-    generate_parser_file(
-        artifacts["action"],
-        artifacts["goto"],
-        artifacts["productions_aug_list"],
-        start,
-        output_path
-    )
-    print(f"\nParser generado exitosamente en: {output_path}")
-
 
 if __name__ == "__main__":
     main()
