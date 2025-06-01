@@ -278,8 +278,8 @@ def main():
 
     # 4) Si piden traza, generarla con los tokens obtenidos
     if args.show_parse:
-        token_types = [tipo for (tipo, _) in token_list]
-        trace_parse(token_types, action, goto, productions_aug_list)
+        token_types = [tipo for (tipo, _) in token_list if tipo != "EOF"]
+        trace_parse(token_types, action, goto, productions_aug_list)    
 
     # 5) Parseo definitivo
     parse_tokens(token_list)
