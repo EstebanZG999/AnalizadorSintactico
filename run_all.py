@@ -43,32 +43,34 @@ def regenerate_lexer():
 # ------------------------------------------------------------------
 # 2) Regenerar el parser (ejecuta sintaxer/run_parser.py con flags)
 # ------------------------------------------------------------------
-def regenerate_parser(grammar_file, show_grammar, show_first_follow, show_automaton, show_tables, show_parse):
+def regenerate_parser(
+    grammar_file,
+    show_grammar,
+    show_first_follow,
+    show_automaton,
+    show_tables,
+    show_parse
+):
     run_parser_path = os.path.join(project_root, "sintaxer", "run_parser.py")
     if not os.path.isfile(run_parser_path):
         print(f"Error: no encontré run_parser.py en {run_parser_path}")
         sys.exit(1)
 
-    cmd = f"python3 \"{run_parser_path}\" \"{grammar_file}\""
-    if show_grammar:
-        cmd += " --show-grammar"
-    if show_first_follow:
-        cmd += " --show-first-follow"
-    if show_automaton:
-        cmd += " --show-automaton"
-    if show_tables:
-        cmd += " --show-tables"
-    if show_parse:
-        cmd += " --show-parse"
+    # Importamos run_parser.py como módulo
+    parser_mod = import_module_from_file("run_parser", run_parser_path)
 
-    print("→ Regenerando parser con comando:")
-    print("   " + cmd)
-    exit_code = os.system(cmd)
-    if exit_code != 0:
-        print(f"Error al regenerar el parser (exit code {exit_code}).")
-        sys.exit(1)
+    # Llamamos a la función que devolvía todos los artefactos
+    artifacts = parser_mod.build_parser_artifacts(
+        grammar_file,
+        show_grammar      = show_grammar,
+        show_first_follow = show_first_follow,
+        show_automaton    = show_automaton,
+        show_tables       = show_tables,
+        show_parse        = show_parse
+    )
+
     print("   Parser regenerado correctamente.\n")
-
+    return artifacts
 # ------------------------------------------------------------------
 # 3) Tokenizar el archivo fuente usando lexer/thelexer.py
 # ------------------------------------------------------------------
@@ -89,12 +91,9 @@ def tokenize_source(source_path):
 
     print(f"→ Tokenizando el archivo fuente: {source_path}")
     try:
-        # asumimos que Lexer constructor
-        # recibe sólo el texto (no ya la lista de tokens) y luego get_tokens() devuelve
-        # una lista de tuplas (token_type, lexema).
         lexer = Lexer(source_code)
         token_tuples = lexer.get_tokens()
-    except Exception as e:
+    except Exception:
         print("[Lexical Error]")
         traceback.print_exc()
         sys.exit(2)
@@ -104,18 +103,103 @@ def tokenize_source(source_path):
         print(f"  {idx:3}: (\"{ttype}\", \"{lexeme}\")")
     print("[/DEBUG-LEXER]\n")
 
-    # Filtrar tokens IGNORE (p.ej. WS) si los produce el lexer
-    filtered = []
-    for ttype, lexeme in token_tuples:
-        if ttype == "WS":
-            continue
-        filtered.append((ttype, lexeme))
-
-    print(f"   Tokens obtenidos ({len(filtered)}): {filtered}\n")
+    # Filtrar tokens IGNORE (por ejemplo, WS)
+    filtered = [(t, l) for (t, l) in token_tuples if t != "WS"]
+    print(f"   Tokens filtrados ({len(filtered)}): {filtered}\n")
     return filtered
 
+
 # ------------------------------------------------------------------
-# 4) Parsear la lista de tokens usando sintaxer/theparser.py
+# 4) Traza genérica shift/reduce usando los artefactos del parser
+# ------------------------------------------------------------------
+def trace_parse(token_types, action, goto, productions_aug_list):
+    """
+    token_types: lista de strings, p. ej. ["ID", "PLUS", "ID", "SEMICOLON", "$"]
+    action:       { (estado, terminal) → ("shift", j) / ("reduce", idx) / ("accept", None) }
+    goto:         { (estado, no_terminal) → estado_destino }
+    productions_aug_list: [
+         (lhs, rhs_list),   # índice 0,  S' → [S]
+         (lhs, rhs_list),   # índice 1,  S  → S ∧ P
+         ...
+    ]
+    """
+    try:
+        from tabulate import tabulate
+    except ImportError:
+        print("Instala 'tabulate' para visualizar la traza de parseo.")
+        return
+
+    print("\n=== Traza de parseo (Shift/Reduce) ===")
+    headers = ["Paso", "Pila", "Lectura", "Acción"]
+    rows = []
+    stack = [0]
+    pos = 0
+    step = 1
+
+    # Añadir "$" al final si no está
+    if not token_types or token_types[-1] != "$":
+        token_types = token_types + ["$"]
+
+    # Detectar estado de aceptación para comparar con inst[0] == "accept"
+    accept_state = None
+    for (st, sym), inst in action.items():
+        if sym == "$" and inst == ("accept", None):
+            accept_state = st
+            break
+
+    while True:
+        cur_state = stack[-1]
+        cur_token = token_types[pos]
+
+        # Caso “accept”:
+        if cur_state == accept_state and cur_token == "$":
+            rows.append([step, list(stack), " ".join(token_types[pos:]), "accept"])
+            break
+
+        inst = action.get((cur_state, cur_token))
+        if not inst:
+            # No hay acción definida: abrimos la traza con error
+            rows.append([
+                step,
+                list(stack),
+                " ".join(token_types[pos:]),
+                f"ERROR: no action para estado {cur_state} y token '{cur_token}'"
+            ])
+            break
+
+        kind, arg = inst
+        if kind == "shift":
+            rows.append([step, list(stack), " ".join(token_types[pos:]), f"shift → {arg}"])
+            stack.append(arg)
+            pos += 1
+
+        elif kind == "reduce":
+            # Recuperar (lhs, rhs) de productions_aug_list[arg]
+            lhs, rhs = productions_aug_list[arg]
+            rows.append([step, list(stack), " ".join(token_types[pos:]), f"reduce {lhs} → {' '.join(rhs)}"])
+            # Desapilar |rhs| elementos
+            for _ in rhs:
+                stack.pop()
+
+            top = stack[-1]
+            next_state = goto.get((top, lhs))
+            if next_state is None:
+                rows.append([step, list(stack), " ".join(token_types[pos:]), f"ERROR: no GOTO para ({top}, {lhs})"])
+                break
+            stack.append(next_state)
+
+        else:  # "accept"
+            rows.append([step, list(stack), " ".join(token_types[pos:]), "accept"])
+            break
+
+        step += 1
+
+    # Imprimir la traza completa
+    print(tabulate(rows, headers, tablefmt="github"))
+    print()
+
+# ------------------------------------------------------------------
+# 5) Parsear la lista de tokens usando sintaxer/theparser.py
 # ------------------------------------------------------------------
 def parse_tokens(token_tuples):
     """
@@ -148,26 +232,19 @@ def parse_tokens(token_tuples):
     print("   ¡Parseo correcto! El archivo fuente cumple la gramática.\n")
 
 # ------------------------------------------------------------------
-# 5) Flujo principal: combina todo
+# 6) Flujo principal: combina todo
 # ------------------------------------------------------------------
 def main():
     parser = argparse.ArgumentParser(
-        description="Flujo completo: regenera lexer&parser, tokeniza y parsea el código fuente."
+        description="Flujo completo: regenera lexer&parser, tokeniza, traza y parsea."
     )
-    parser.add_argument("grammar_file",
-                        help="Ruta al archivo YAPar (.yalp) con la gramática")
-    parser.add_argument("source_file",
-                        help="Ruta al archivo fuente a compilar (por ejemplo, .txt o .src)")
-    parser.add_argument("--show-grammar", action="store_true",
-                        help="Muestra la gramática extendida")
-    parser.add_argument("--show-first-follow", action="store_true",
-                        help="Muestra los conjuntos FIRST y FOLLOW")
-    parser.add_argument("--show-automaton", action="store_true",
-                        help="Muestra el autómata LR(0)")
-    parser.add_argument("--show-tables", action="store_true",
-                        help="Muestra las tablas ACTION | GOTO")
-    parser.add_argument("--show-parse", action="store_true",
-                        help="Muestra la traza de parseo de ejemplo")
+    parser.add_argument("grammar_file", help="Ruta al archivo YAPar (.yalp)")
+    parser.add_argument("source_file",  help="Ruta al archivo fuente a procesar")
+    parser.add_argument("--show-grammar",      action="store_true", help="Muestra gramática extendida")
+    parser.add_argument("--show-first-follow", action="store_true", help="Muestra FIRST/FOLLOW")
+    parser.add_argument("--show-automaton",    action="store_true", help="Muestra autómata LR(0)")
+    parser.add_argument("--show-tables",       action="store_true", help="Muestra ACTION/GOTO")
+    parser.add_argument("--show-parse",        action="store_true", help="Muestra traza shift/reduce")
 
     args = parser.parse_args()
     grammar_file = args.grammar_file
@@ -180,23 +257,31 @@ def main():
         print(f"Error: no existe el archivo fuente {source_file}")
         sys.exit(1)
 
-    # 1) Regenerar el lexer
+    # 1) Regenerar lexer
     regenerate_lexer()
 
-    # 2) Regenerar el parser con las opciones deseadas
-    regenerate_parser(
+    # 2) Regenerar parser *en memoria*, obteniendo artefactos
+    artifacts = regenerate_parser(
         grammar_file,
-        show_grammar      = args.show_grammar,
-        show_first_follow = args.show_first_follow,
-        show_automaton    = args.show_automaton,
-        show_tables       = args.show_tables,
-        show_parse        = args.show_parse
+            show_grammar      = args.show_grammar,
+            show_first_follow = args.show_first_follow,
+            show_automaton    = args.show_automaton,
+            show_tables       = args.show_tables,
+            show_parse        = args.show_parse
     )
+    action             = artifacts["action"]
+    goto               = artifacts["goto"]
+    productions_aug_list = artifacts["productions_aug_list"]
 
     # 3) Tokenizar el código fuente
     token_list = tokenize_source(source_file)
 
-    # 4) Parsear la lista de tokens
+    # 4) Si piden traza, generarla con los tokens obtenidos
+    if args.show_parse:
+        token_types = [tipo for (tipo, _) in token_list]
+        trace_parse(token_types, action, goto, productions_aug_list)
+
+    # 5) Parseo definitivo
     parse_tokens(token_list)
 
 if __name__ == "__main__":
