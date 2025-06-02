@@ -10,7 +10,7 @@ class YalpParser:
     """
     TOKEN_DECLARATION = re.compile(r'^%token\s+(?P<tokens>[A-Z0-9_ ]+)')
     IGNORE_DECLARATION = re.compile(r'^IGNORE\s+(?P<tokens>[A-Z0-9_ ]+)')
-    RULE_START = re.compile(r'^(?P<lhs>[a-z][a-z0-9_]*)\s*:\s*(?P<rhs>.*)')
+    RULE_START = re.compile(r'^(?P<lhs>[A-Za-z][A-Za-z0-9_]*)\s*:\s*(?P<rhs>.*)')
     PROD_SEPARATOR = re.compile(r'\|')
     PROD_END = re.compile(r';')
 
