@@ -64,7 +64,7 @@ def generate_parser_file(
     lines.append("            if term == '$' and state == ACCEPT_STATE:")
     lines.append("                return")
     lines.append("") 
-    lines.append('            print(f"DEBUG-PARSE → state={state}, term={term!r}, ACCEPT_STATE={ACCEPT_STATE}")')
+    #lines.append('            print(f"DEBUG-PARSE → state={state}, term={term!r}, ACCEPT_STATE={ACCEPT_STATE}")')
     lines.append("            action = cls.ACTION.get((state, term))")
     lines.append("            if action is None:")
     lines.append("                raise SyntaxError(f'Syntax error at position {pos}, unexpected token {term}')")

@@ -51,10 +51,10 @@ def construct_slr_table(
     augmented_rhs = productions[augmented_lhs][0]
 
     # << DEBUG: imprime LHS y RHS de la producción aumentada
-    print(f"DEBUG: augmented_lhs={augmented_lhs!r}, augmented_rhs={augmented_rhs!r}")
+    # print(f"DEBUG: augmented_lhs={augmented_lhs!r}, augmented_rhs={augmented_rhs!r}")
 
     # << DEBUG: imprime las primeras 10 claves de transitions
-    print("DEBUG: transitions keys:", list(transitions.keys())[:10], "…")
+    # print("DEBUG: transitions keys:", list(transitions.keys())[:10], "…")
 
     # Empezamos la lista con la aumentada
     all_productions: List[Tuple[str, List[str]]] = [(augmented_lhs, augmented_rhs)]
@@ -87,10 +87,10 @@ def construct_slr_table(
     # El estado de aceptación es goto(0, start_symbol)
     start_symbol = augmented_rhs[0]               # el lhs real, p.ej. 's'
     accept_state = transitions.get((0, start_symbol))
-    print(f"DEBUG: start_symbol={start_symbol!r}, accept_state={accept_state!r}")
+    # print(f"DEBUG: start_symbol={start_symbol!r}, accept_state={accept_state!r}")
     if accept_state is not None:
         action[(accept_state, '$')] = ('accept', None)
-        print(f"DEBUG: forced accept at state {accept_state}")
+        # print(f"DEBUG: forced accept at state {accept_state}")
     # —————————————————————————————
 
     return action, goto

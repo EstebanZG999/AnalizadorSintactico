@@ -270,19 +270,23 @@ def main():
             show_parse        = args.show_parse
     )
 
+    '''
     print("Claves en artifacts:", list(artifacts.keys()))
     sys.stdout.flush()
+    '''
 
     action             = artifacts["action"]
     goto               = artifacts["goto"]
     productions_aug_list = artifacts["productions_aug_list"]
 
+    '''
     # >>> Depuración: muestro el contenido real de productions_aug_list
     print("Contenido de productions_aug_list (índice → (lhs, rhs)): ")
     for idx, (lhs, rhs) in enumerate(productions_aug_list):
         print(f"  {idx}: {lhs} → {rhs}")
     print()
     # <<< Fin depuración
+    '''
 
     # 3) Tokenizar el código fuente
     token_list = tokenize_source(source_file)
