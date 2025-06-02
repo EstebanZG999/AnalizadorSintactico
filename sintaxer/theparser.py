@@ -5,9 +5,9 @@ import sys
 from typing import List, Tuple, Any
 
 class Parser:
-    ACTION = {(0, 'NUMBER'): ('shift', 2), (2, 'PLUS'): ('shift', 4), (3, 'SEMICOLON'): ('shift', 5), (4, 'NUMBER'): ('shift', 6), (1, '$'): ('accept', None), (5, '$'): ('reduce', 0), (6, 'SEMICOLON'): ('reduce', 1)}
-    GOTO = {(0, 's'): 1, (0, 'p'): 3}
-    PRODUCTIONS = [('s', ['p', 'SEMICOLON']), ('p', ['NUMBER', 'PLUS', 'NUMBER'])]
+    ACTION = {(0, 'LBRACKET'): ('shift', 3), (0, 'ID'): ('shift', 4), (2, 'GT'): ('shift', 6), (3, 'LBRACKET'): ('shift', 3), (3, 'ID'): ('shift', 4), (5, 'LT'): ('shift', 8), (6, 'LBRACKET'): ('shift', 3), (6, 'ID'): ('shift', 4), (7, 'RBRACKET'): ('shift', 10), (7, 'LT'): ('shift', 8), (8, 'LBRACKET'): ('shift', 3), (8, 'ID'): ('shift', 4), (11, 'GT'): ('shift', 6), (1, 'RBRACKET'): ('reduce', 4), (1, '$'): ('reduce', 4), (1, 'LT'): ('reduce', 4), (1, 'GT'): ('reduce', 4), (2, 'RBRACKET'): ('reduce', 2), (2, 'LT'): ('reduce', 2), (2, '$'): ('reduce', 2), (4, 'RBRACKET'): ('reduce', 6), (4, 'GT'): ('reduce', 6), (4, 'LT'): ('reduce', 6), (4, '$'): ('reduce', 6), (5, '$'): ('accept', None), (9, 'RBRACKET'): ('reduce', 3), (9, '$'): ('reduce', 3), (9, 'LT'): ('reduce', 3), (9, 'GT'): ('reduce', 3), (10, 'RBRACKET'): ('reduce', 5), (10, 'GT'): ('reduce', 5), (10, 'LT'): ('reduce', 5), (10, '$'): ('reduce', 5), (11, 'RBRACKET'): ('reduce', 1), (11, 'LT'): ('reduce', 1), (11, '$'): ('reduce', 1)}
+    GOTO = {(0, 'q'): 1, (0, 'p'): 2, (0, 's'): 5, (3, 'q'): 1, (3, 'p'): 2, (3, 's'): 7, (6, 'q'): 9, (8, 'q'): 1, (8, 'p'): 11}
+    PRODUCTIONS = [("s'", ['s']), ('s', ['s', 'LT', 'p']), ('s', ['p']), ('p', ['p', 'GT', 'q']), ('p', ['q']), ('q', ['LBRACKET', 's', 'RBRACKET']), ('q', ['ID'])]
     START = 's'
 
     @classmethod

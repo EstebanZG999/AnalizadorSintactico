@@ -1,0 +1,23 @@
+/* INICIA Sección de TOKENS */
+%token ID        [A-Za-z][A-Za-z0-9_]*
+%token LT        <
+%token GT        >
+%token LBRACKET  \[
+%token RBRACKET  \]
+%token WS        [ \t]+
+IGNORE WS
+%%
+/* INICIA Sección de PRODUCCIONES */
+s:
+  s LT p
+  |   p
+;
+p:
+    p GT q
+  | q
+;
+q:
+    LBRACKET s RBRACKET
+  | ID
+;
+/* FINALIZA Sección de PRODUCCIONES */

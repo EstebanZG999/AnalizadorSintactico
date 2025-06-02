@@ -45,7 +45,7 @@ def generate_global_dfa():
             expanded = yalex_parser.expand_definitions(regex_clean).replace("\n", "").strip()
 
         # Depuración extra para ver qué estamos recibiendo
-        print(f"[RAW   ] Regla {i+1}: regex_str={regex_str!r}, expanded={expanded!r}")
+        # print(f"[RAW   ] Regla {i+1}: regex_str={regex_str!r}, expanded={expanded!r}")
 
         # Caso A: literal entre comillas
         if expanded == "'":
