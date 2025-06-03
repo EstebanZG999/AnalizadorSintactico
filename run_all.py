@@ -93,9 +93,9 @@ def tokenize_source(source_path):
     try:
         lexer = Lexer(source_code)
         token_tuples = lexer.get_tokens()
-    except Exception:
-        print("[Lexical Error]")
-        traceback.print_exc()
+    except Exception as e:
+        # Si ocurriera cualquier excepción en el lexer, sólo mostramos un mensaje conciso
+        print("[Lexical Error]:", e)
         sys.exit(2)
 
     print("\n[DEBUG-LEXER] Tokens generados por el lexer (incluye WS/EOF):")
@@ -224,11 +224,14 @@ def parse_tokens(token_tuples):
     try:
         # NOTA: Aquí pasamos la lista de tuplas (term, lexema) directamente
         Parser.parse(token_tuples)
-    except Exception as e:
-        print("[Syntax Error]")
-        traceback.print_exc()
+    except SyntaxError as e:
+        # Si el parse interno lanza un SyntaxError (tal como lo hace ourparser), mostrar sólo el mensaje
+        print("[Parser Syntax Error]:", e)
         sys.exit(3)
-
+    except Exception as e:
+        # Para cualquier otra excepción imprevista, igual mostramos algo legible
+        print("[Parser Syntax Error (interno)]:", e)
+        sys.exit(3)
     print("   ¡Parseo correcto! El archivo fuente cumple la gramática.\n")
 
 # ------------------------------------------------------------------
